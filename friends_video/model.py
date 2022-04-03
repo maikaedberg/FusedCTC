@@ -16,7 +16,7 @@ class BaselineAudio(nn.Module):
 
         super(BaselineAudio, self).__init__()
 
-        NFB = 5*128
+        NFB = 29*128
         NDIM = 256
         NMID = 64
 
@@ -45,11 +45,11 @@ class BaselineAudio(nn.Module):
 
         return action
 
-class BaselineActionVision(nn.Module):
+class BaselineInteractionVision2(nn.Module):
 
     def __init__(self, p=0.1):
 
-        super(BaselineActionVision, self).__init__()
+        super(BaselineInteractionVision2, self).__init__()
 
         NFB = 512
         NDIM = 256
@@ -58,7 +58,7 @@ class BaselineActionVision(nn.Module):
         self.fc_action_node=nn.Linear(2*NFB,NDIM)
         self.fc_action_mid=nn.Linear(NDIM,NMID)
         self.nl_action_mid=nn.LayerNorm([NMID])
-        self.fc_action_final=nn.Linear(NMID, 4)
+        self.fc_action_final=nn.Linear(NMID, 2)
         
         self.dropout=nn.Dropout(p)
 
@@ -94,9 +94,9 @@ class BaselineInteractionVision(nn.Module):
         
         self.dropout=nn.Dropout(p)     
 
-        for m in self.modules():
-            if isinstance(m,nn.Linear):
-                nn.init.kaiming_normal_(m.weight)
+        #for m in self.modules():
+        #    if isinstance(m,nn.Linear):
+        #        nn.init.kaiming_normal_(m.weight)
 
     def forward(self, x, mode='train'):
 
@@ -114,12 +114,10 @@ def make_models(qmodes = [], kmodes=[], N=2):
 
     for (qmode, kmode) in zip(qmodes, kmodes):
 
-        base_action  = BaselineActionVision()      if qmode=='vision' else BaselineAudio(4)
         base_interac = BaselineInteractionVision() if qmode=='vision' else BaselineAudio(2)
+        encoder =  EncoderClassifier(qmode, kmode, 8, base_interac, dropout_p=0.1, N=N)
 
-        encoder_action =       EncoderClassifier(qmode, kmode, 8, base_action, dropout_p=0.1, N=N)
-        encoder_interaction =  EncoderClassifier(qmode, kmode, 8, base_interac, dropout_p=0.1, N=N)
-        models.append((encoder_action, encoder_interaction))
+        models.append(encoder)
 
     return models
 
@@ -137,8 +135,8 @@ class EncoderClassifier(nn.Module):
 
         qdim = 512 if qmode == 'vision' else 128
         kdim = 512 if kmode == 'vision' else 128
-        qlen = 2 if qmode == 'vision' else 5
-        klen = 2 if kmode == 'vision' else 5
+        qlen = 2 if qmode == 'vision' else 29
+        klen = 2 if kmode == 'vision' else 29
 
         self.n_heads = heads
 
